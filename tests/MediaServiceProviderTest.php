@@ -22,6 +22,12 @@ use Tests\Support\FakeContainer;
  * container context, selects the correct ImageTransformerInterface driver
  * based on the `media.driver` config key, and wires the Media facade.
  *
+ * LocalDriver (ez-php/storage) is used below only as a real StorageInterface
+ * instance to satisfy ImageProcessor's constructor — it is deliberately not
+ * declared via #[UsesClass]: this module's phpunit.xml <source> covers only
+ * its own src/, so a class from another package is "not a valid target for
+ * code coverage" and, with failOnWarning=true, would fail the build.
+ *
  * @uses \Tests\Support\FakeConfig
  * @uses \Tests\Support\FakeContainer
  */
@@ -30,7 +36,6 @@ use Tests\Support\FakeContainer;
 #[UsesClass(ImagickDriver::class)]
 #[UsesClass(ImageProcessor::class)]
 #[UsesClass(Media::class)]
-#[UsesClass(LocalDriver::class)]
 final class MediaServiceProviderTest extends TestCase
 {
     protected function tearDown(): void
