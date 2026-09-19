@@ -1,6 +1,6 @@
 {
   "name": "ez-php/media",
-  "version": "2.4.7",
+  "version": "2.4.8",
   "description": "Image resizing and file processing: transformations over a StorageInterface source via ext-gd or ext-imagick",
   "type": "library",
   "license": "MIT",
