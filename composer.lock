@@ -124,16 +124,16 @@
         },
         {
             "name": "ez-php/storage",
-            "version": "2.5.0",
+            "version": "2.5.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/ez-php/storage.git",
-                "reference": "5e506e9f4d5986f0e7fe98e50e2a1420f7492aa0"
+                "reference": "96354c19b82e0b8e285d205fb2a34a73e53e319d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ez-php/storage/zipball/5e506e9f4d5986f0e7fe98e50e2a1420f7492aa0",
-                "reference": "5e506e9f4d5986f0e7fe98e50e2a1420f7492aa0",
+                "url": "https://api.github.com/repos/ez-php/storage/zipball/96354c19b82e0b8e285d205fb2a34a73e53e319d",
+                "reference": "96354c19b82e0b8e285d205fb2a34a73e53e319d",
                 "shasum": ""
             },
             "require": {
@@ -180,7 +180,7 @@
                 "issues": "https://github.com/ez-php/storage/issues",
                 "source": "https://github.com/ez-php/storage"
             },
-            "time": "2026-09-20T02:42:06+00:00"
+            "time": "2026-09-25T18:53:50+00:00"
         }
     ],
     "packages-dev": [
