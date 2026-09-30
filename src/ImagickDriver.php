@@ -87,6 +87,45 @@ final class ImagickDriver implements ImageTransformerInterface
     }
 
     /**
+     * Turn the image upright according to its EXIF orientation and reset the tag,
+     * so the re-encoded output is not rotated a second time by viewers.
+     *
+     * @param Imagick $image
+     *
+     * @return void
+     */
+    private function orient(Imagick $image): void
+    {
+        $orientation = $image->getImageOrientation();
+
+        if ($orientation <= Imagick::ORIENTATION_TOPLEFT) {
+            return;
+        }
+
+        if (in_array($orientation, [Imagick::ORIENTATION_TOPRIGHT, Imagick::ORIENTATION_LEFTTOP, Imagick::ORIENTATION_RIGHTBOTTOM], true)) {
+            $image->flopImage();
+        }
+
+        if ($orientation === Imagick::ORIENTATION_BOTTOMLEFT) {
+            $image->flipImage();
+        }
+
+        // rotateImage() turns clockwise.
+        $angle = match ($orientation) {
+            Imagick::ORIENTATION_BOTTOMRIGHT => 180,
+            Imagick::ORIENTATION_LEFTTOP, Imagick::ORIENTATION_LEFTBOTTOM => 270,
+            Imagick::ORIENTATION_RIGHTTOP, Imagick::ORIENTATION_RIGHTBOTTOM => 90,
+            default => 0,
+        };
+
+        if ($angle !== 0) {
+            $image->rotateImage('none', $angle);
+        }
+
+        $image->setImageOrientation(Imagick::ORIENTATION_TOPLEFT);
+    }
+
+    /**
      * Decode encoded image data into an Imagick handle.
      *
      * @param string $contents Encoded image data.
@@ -100,6 +139,7 @@ final class ImagickDriver implements ImageTransformerInterface
         try {
             $image = new Imagick();
             $image->readImageBlob($contents);
+            $this->orient($image);
 
             return $image;
         } catch (ImagickException $exception) {

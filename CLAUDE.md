@@ -28,10 +28,11 @@ docker compose exec app composer full
 Executes in order:
 1. `sync_guidelines.php --check` — fails if any `CLAUDE.md` has drifted from this file
 2. `check_test_classes.php` — fails on a duplicate test class name (all packages share the `Tests\` namespace, so a collision is a fatal error in the aggregated run, not a test failure)
-3. `phpstan analyse` — static analysis, level 9, config: `phpstan.neon`
-4. `php-cs-fixer fix` — auto-fixes style (`@PSR12` + `@PHP83Migration` + strict rules)
+3. `check_module_deps.php` — fails when a package's code imports an ez-php package its `composer.json` does not declare (module `src`: `require`/`suggest`; tests: `require`/`require-dev` and their dependencies), or requires one it never uses
+4. `phpstan analyse` — static analysis, level 9, config: `phpstan.neon`
+5. `php-cs-fixer fix` — auto-fixes style (`@PSR12` + `@PHP83Migration` + strict rules)
    *(Note: `@PHP85Migration` does not exist yet in php-cs-fixer; `@PHP83Migration` is the highest available and is used intentionally even though the project targets PHP 8.5)*
-5. `phpunit` — all tests with coverage
+6. `phpunit` — all tests with coverage
 
 Individual commands when needed:
 ```
@@ -40,6 +41,7 @@ composer cs                  # CS Fixer only
 composer test                # PHPUnit only
 composer guidelines:check    # CLAUDE.md drift only
 composer test-classes:check  # duplicate test class names only
+composer module-deps:check   # undeclared / unused ez-php package dependencies only
 ```
 
 **PHPStan:** never suppress with `@phpstan-ignore-line` — always fix the root cause.
@@ -198,20 +200,22 @@ vendor/bin/docker-init
 
 This copies `Dockerfile`, `docker-compose.yml`, `.env.example`, `start.sh`, and `docker/` into the module, replacing `{{MODULE_NAME}}` placeholders. Existing files are never overwritten.
 
-Pass `--services` to merge MySQL/Redis/Meilisearch service definitions directly into `docker-compose.yml` and uncomment the matching sections in `.env.example`, instead of adapting them by hand afterward:
+Pass `--services` to merge MySQL/Redis/Meilisearch/Memcached/Mailpit service definitions directly into `docker-compose.yml` and uncomment the matching sections in `.env.example`, instead of adapting them by hand afterward:
 
 ```
 vendor/bin/docker-init --services=mysql
 vendor/bin/docker-init --services=redis
 vendor/bin/docker-init --services=meilisearch
 vendor/bin/docker-init --services=mysql,redis
+vendor/bin/docker-init --services=memcached,mailpit
 ```
 
-Pass `--extensions` to merge PHP extension install blocks (apt packages plus `docker-php-ext-install`/`pecl` lines) directly into `docker/app/Dockerfile`, instead of hand-editing it afterward — supported extensions: `bcmath`, `gmp`, `gd`, `imagick`:
+Pass `--extensions` to merge PHP extension install blocks (apt packages plus `docker-php-ext-install`/`pecl` lines) directly into `docker/app/Dockerfile`, instead of hand-editing it afterward — supported extensions: `bcmath`, `gmp`, `gd`, `imagick`, `memcached`, `apcu` (with `apc.enable_cli=1`):
 
 ```
 vendor/bin/docker-init --extensions=gmp,bcmath
 vendor/bin/docker-init --extensions=gd,imagick
+vendor/bin/docker-init --extensions=memcached,apcu
 ```
 
 When run from a module directory inside this monorepo, any requested extension not already present is also merged into the shared root `docker/app/Dockerfile` — the container `composer full` at the root actually runs against, distinct from the module's own standalone image.
@@ -268,8 +272,9 @@ src/
   MediaException.php           — thrown when image data cannot be decoded, transformed, or encoded
   ImageTransformerInterface.php — contract for raw image transformation: resize/crop/convertFormat/dimensions,
                                    bytes in, bytes out; implementations know nothing about storage
-  GdDriver.php                  — ImageTransformerInterface implementation backed by ext-gd (default)
-  ImagickDriver.php             — ImageTransformerInterface implementation backed by ext-imagick
+  ExifOrientation.php           — @internal: reads only the EXIF Orientation tag of a JPEG (no ext-exif needed)
+  GdDriver.php                  — ImageTransformerInterface implementation backed by ext-gd (default); applies the EXIF orientation on decode
+  ImagickDriver.php             — ImageTransformerInterface implementation backed by ext-imagick; applies the EXIF orientation on decode and resets the tag
   ImageProcessor.php            — orchestrates a StorageInterface + an ImageTransformerInterface driver:
                                    reads source bytes, transforms, writes the result back
   Media.php                     — static façade for the active ImageProcessor; wired by MediaServiceProvider
@@ -278,6 +283,8 @@ src/
 tests/
   TestCase.php                  — plain PHPUnit base (identical in every package)
   MediaPngFixture.php           — builds an in-memory PNG fixture (a uniquely named helper — never put helpers on TestCase)
+  MediaOrientedJpegFixture.php   — 40x20 JPEG with coloured quadrants and an injected EXIF Orientation tag
+  MediaOrientationTest.php       — ExifOrientation parsing; all 8 orientations upright in both drivers, no double rotation
   GdDriverTest.php               — resize/crop/convertFormat/dimensions + error paths for GdDriver
   ImagickDriverTest.php          — same coverage for ImagickDriver; skipped when ext-imagick is absent
   ImageProcessorTest.php         — storage round-trip (read → transform → write) using ez-php/storage's InMemoryDriver
@@ -317,6 +324,7 @@ tests/
 
 ## Design Decisions and Constraints
 
+- **EXIF orientation is applied on decode, in both drivers.** Every operation and `dimensions()` works on the upright image, so crop coordinates and target sizes mean what the user sees. GD drops EXIF on re-encode; Imagick keeps it, so it resets the tag to top-left. GD reads the tag with the small `ExifOrientation` parser (JPEG APP1 → TIFF IFD0, tag 0x0112, both byte orders) instead of `exif_read_data()`, so the default driver needs no `ext-exif` — the only metadata this module reads.
 - **Transformation only — no storage of its own.** Per `modules/storage/CLAUDE.md`'s "What does
   NOT belong" list ("Image resizing or file processing — belongs in a dedicated media module"),
   this module depends on `ez-php/storage`'s `StorageInterface` rather than reimplementing file
@@ -368,5 +376,5 @@ tests/
 | Reading/writing files, presigned URLs, upload handling | `ez-php/storage` — this module only transforms bytes it is handed via `StorageInterface` |
 | File validation (MIME type, size limits, malicious payload sniffing) | `ez-php/validation` |
 | Thumbnail-set generation, image processing pipelines, queued/async processing | Application layer, or compose `ImageProcessor` calls inside an `ez-php/queue` job |
-| EXIF/ICC metadata extraction | Out of scope for this first pass — not needed by resize/crop/convert |
+| EXIF/ICC metadata extraction (beyond the Orientation tag) | Out of scope — not needed by resize/crop/convert |
 | Database-backed media/attachment records | The ORM module (`ez-php/orm`) |

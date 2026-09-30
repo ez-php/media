@@ -51,7 +51,7 @@ them, and writes the result back.
 - No file validation (MIME type, size, malicious payload sniffing) — that is
   `ez-php/validation`'s job. This package assumes valid image bytes are handed
   to it, and throws `MediaException` if they cannot be decoded.
-- No metadata extraction (EXIF, ICC profiles) — out of scope for a first pass.
+- JPEGs are turned upright according to their EXIF Orientation tag before any operation (phone photos), and `dimensions()` reports the upright size; the output carries no orientation to apply again. Beyond that, no metadata extraction (other EXIF data, ICC profiles).
 
 ## Requirements
 
