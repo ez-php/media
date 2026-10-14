@@ -117,10 +117,21 @@ final class GdDriver implements ImageTransformerInterface
      */
     private function decode(string $contents): GdImage
     {
-        $image = @imagecreatefromstring($contents);
+        $warning = null;
+        set_error_handler(static function (int $errno, string $errstr) use (&$warning): bool {
+            $warning = $errstr;
+
+            return true;
+        }, E_WARNING);
+
+        try {
+            $image = imagecreatefromstring($contents);
+        } finally {
+            restore_error_handler();
+        }
 
         if ($image === false) {
-            throw new MediaException('Unable to decode image data.');
+            throw new MediaException('Unable to decode image data.' . ($warning !== null ? " ({$warning})" : ''));
         }
 
         return $this->orient($image, ExifOrientation::fromJpeg($contents));
