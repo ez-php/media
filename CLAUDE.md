@@ -356,7 +356,7 @@ tests/
 ## Testing Approach
 
 - **No MySQL/Redis/Meilisearch required.** Every test is a pure unit test against in-memory PNG
-  fixtures (`TestCase::makePng()`) and `ez-php/storage`'s `InMemoryDriver` (no filesystem, no
+  fixtures (`MediaPngFixture::make()`, `tests/MediaPngFixture.php`) and `ez-php/storage`'s `InMemoryDriver` (no filesystem, no
   network) — matching `modules/storage/CLAUDE.md`'s own "no external services required" stance
   for its equivalent in-process driver.
 - **`ImagickDriverTest` self-skips** via `markTestSkipped()` when `ext-imagick` isn't loaded,
