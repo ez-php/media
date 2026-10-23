@@ -291,6 +291,7 @@ tests/
   ImagickDriverTest.php          — same coverage for ImagickDriver; skipped when ext-imagick is absent
   ImageProcessorTest.php         — storage round-trip (read → transform → write) using ez-php/storage's InMemoryDriver
   MediaTest.php                  — Media façade delegation and the "not set" error path
+  MediaServiceProviderTest.php  — gd by default, imagick when configured, Media façade set on resolve
 ```
 
 ---
