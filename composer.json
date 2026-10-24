@@ -19,14 +19,14 @@
   "require": {
     "php": "^8.5",
     "ext-gd": "*",
-    "ez-php/contracts": "^2.0",
-    "ez-php/storage": "^2.0"
+    "ez-php/contracts": "^2.6.0",
+    "ez-php/storage": "^2.6.0"
   },
   "suggest": {
     "ext-imagick": "Required to use ImagickDriver instead of the default GdDriver"
   },
   "require-dev": {
-    "ez-php/docker": "^2.0",
+    "ez-php/docker": "^2.6.0",
     "phpunit/phpunit": "^13.0",
     "phpstan/phpstan": "^2.1",
     "friendsofphp/php-cs-fixer": "^3.94",
