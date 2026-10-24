@@ -292,6 +292,8 @@ tests/
   ImageProcessorTest.php         — storage round-trip (read → transform → write) using ez-php/storage's InMemoryDriver
   MediaTest.php                  — Media façade delegation and the "not set" error path
   MediaServiceProviderTest.php  — gd by default, imagick when configured, Media façade set on resolve
+  Support/FakeConfig.php         — minimal ConfigInterface stub for service provider tests
+  Support/FakeContainer.php      — minimal ContainerInterface stub for service provider tests
 ```
 
 ---
